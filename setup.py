@@ -23,8 +23,9 @@ pub_requirements = dev_requirements + ['twine>=3.2.0']
 setup(
     name='get-aws-secret',
     version='0.1.0b0',
-    description='Get a Secret from AWS SecretManager or from an environment ' +
-                'variable, if set',
+    description='Simplify retrieval of secrets from AWS SecretsManager. ' +
+                'Optionally auto-memoize secrets in environment variables ' +
+                'to improve performance and reduce costs.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/hacktlib/py-get-aws-secret/wiki',

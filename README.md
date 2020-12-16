@@ -4,7 +4,7 @@ Simplify retrieval of secrets from AWS SecretsManager. Optionally auto-memoize s
 
 
 ![Test Coverage](https://raw.githubusercontent.com/hacktlib/py-get-aws-secret/main/coverage.svg)
-![PyPI](https://img.shields.io/pypi/v/get-aws-secret)
+[![PyPI](https://img.shields.io/pypi/v/get-aws-secret)](https://pypi.org/project/get-aws-secret/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Requirements Status](https://requires.io/github/hacktlib/py-get-aws-secret/requirements.svg?branch=main)](https://requires.io/github/hacktlib/py-get-aws-secret/requirements/?branch=main)
 [![Code Style](https://img.shields.io/badge/code%20style-PEP8-lightgrey)](https://github.com/hhatto/autopep8/)
