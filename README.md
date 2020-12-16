@@ -1,5 +1,8 @@
 # Get AWS Secret
 
+Simplify retrieval of secrets from AWS SecretsManager. Optionally auto-memoize secrets in environment variables to improve performance and reduce costs.
+
+
 ![Test Coverage](https://raw.githubusercontent.com/hacktlib/py-get-aws-secret/main/coverage.svg)
 ![PyPI](https://img.shields.io/pypi/v/get-aws-secret)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
