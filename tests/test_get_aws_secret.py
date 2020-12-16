@@ -10,9 +10,9 @@ import pytest
 from get_aws_secret import (
     constants as c,
     extract_secret_from_boto3_response as extract_secret,
-    AwsSecret,
     get_client,
     get_secret,
+    get_secret_fix_args,
     new_boto3_client,
 )
 
@@ -220,7 +220,7 @@ def test_get_secret_client_mock(
 
 
 @mock.patch('get_aws_secret.get_secret')
-def test_secret_manager(get_secret, secret_str):
+def test_get_secret_fix_args(get_secret, secret_str):
     with mock.patch.dict(os.environ, {}):
         client = mock.Mock()
         get_secret.return_value = secret_str
@@ -229,21 +229,15 @@ def test_secret_manager(get_secret, secret_str):
         version_id = 1
         version_stage = 2
         get_secret_kwargs = {
-            'memo': True,
+            'memoize': True,
             'client': client,
             'version_id': version_id,
             'version_stage': version_stage,
         }
 
-        aws_secret = AwsSecret(**get_secret_kwargs)
+        get_secret_ = get_secret_fix_args(**get_secret_kwargs)
 
-        secret = aws_secret.get(secret_key)
+        secret = get_secret_(secret_key)
 
-        get_secret.assert_called_once_with(**{
-            'secret_identifier': secret_key,
-            **get_secret_kwargs,
-            'base64_decode': c.DEFAULT_BASE64_ENCODE_ARG,
-            'bytes_decode': c.DEFAULT_BYTES_ENCODE_ARG,
-            'encoding': c.DEFAULT_ENCODING,
-        })
+        get_secret.assert_called_once_with(secret_key, **get_secret_kwargs)
         assert secret == secret_str

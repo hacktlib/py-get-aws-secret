@@ -1,5 +1,5 @@
 import base64
-from dataclasses import dataclass
+from functools import partial
 import os
 from typing import Optional
 
@@ -9,27 +9,8 @@ import botocore
 from get_aws_secret import constants as c
 
 
-@dataclass
-class AwsSecret():
-    memo: Optional[bool] = None
-    client: Optional[botocore.client.BaseClient] = None
-    version_id: Optional[str] = c.DEFAULT_SECRET_VERSION_ID
-    version_stage: Optional[str] = c.DEFAULT_SECRET_VERSION_STAGE
-    base64_decode: Optional[bool] = c.DEFAULT_BASE64_ENCODE_ARG
-    bytes_decode: Optional[bool] = c.DEFAULT_BYTES_ENCODE_ARG
-    encoding: Optional[str] = c.DEFAULT_ENCODING
-
-    def get(self, secret_identifier: str) -> str:
-        return get_secret(
-            secret_identifier=secret_identifier,
-            memo=self.memo,
-            client=self.client,
-            version_id=self.version_id,
-            version_stage=self.version_stage,
-            base64_decode=self.base64_decode,
-            bytes_decode=self.bytes_decode,
-            encoding=self.encoding,
-        )
+def get_secret_fix_args(*args, **kwargs):
+    return partial(get_secret, *args, **kwargs)
 
 
 def new_boto3_client():
