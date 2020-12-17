@@ -1,7 +1,8 @@
 import base64
 from functools import partial
+import json
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import boto3
 import botocore
@@ -53,6 +54,19 @@ def extract_secret_from_boto3_response(
         return secret_val
 
 
+def return_secret(
+        secret_value: str,
+        load_json: bool,
+        ) -> Union[str, dict, list]:
+    if load_json is not True:
+        return secret_value
+
+    try:
+        return json.loads(secret_value)
+    except (json.decoder.JSONDecodeError, TypeError):
+        return secret_value
+
+
 def get_secret(
         # Secret Key or ARN (will be passed to boto3 client.get_secret_value)
         secret_identifier: str,
@@ -69,9 +83,11 @@ def get_secret(
         base64_decode: Optional[bool] = True,
         bytes_decode: Optional[bool] = True,
         encoding: Optional[str] = c.DEFAULT_ENCODING,
+
+        load_json: Optional[bool] = True,
         ) -> str:
     if memoize is True and secret_identifier in os.environ.keys():
-        return os.environ[secret_identifier]
+        return return_secret(os.environ[secret_identifier], load_json)
 
     client = get_client(client)
 
@@ -91,4 +107,4 @@ def get_secret(
     if memoize is True:
         os.environ[secret_identifier] = secret_value
 
-    return secret_value
+    return return_secret(secret_value, load_json)

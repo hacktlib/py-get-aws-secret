@@ -1,5 +1,6 @@
 import base64
 import binascii
+import json
 import os
 from unittest import mock
 
@@ -14,6 +15,7 @@ from get_aws_secret import (
     get_secret,
     get_secret_fix_args,
     new_boto3_client,
+    return_secret,
 )
 
 
@@ -39,6 +41,11 @@ def secret_key():
 
 
 @pytest.fixture
+def secret_key_json():
+    return 'SECRET_KEY_JSON'
+
+
+@pytest.fixture
 def secret_key_env():
     return 'SECRET_ENV_VAR_KEY'
 
@@ -49,18 +56,41 @@ def secret_str():
 
 
 @pytest.fixture
+def secret_key_env_json(secret_key_env):
+    return f'{secret_key_env}_JSON'
+
+
+@pytest.fixture
+def secret_str_json():
+    return '{"hello": "world"}'
+
+
+@pytest.fixture
 def secret_base64(secret_str):
     return base64.b64encode(secret_str.encode('utf-8'))
 
 
 @pytest.fixture
-def secret_env_var_dict(secret_str, secret_key_env):
-    return {secret_key_env: secret_str}
+def secret_env_var_dict(
+        secret_key_env,
+        secret_key_env_json,
+        secret_str,
+        secret_str_json,
+        ):
+    return {
+        secret_key_env: secret_str,
+        secret_key_env_json: secret_str_json,
+    }
 
 
 @pytest.fixture
 def mock_secret_str_response(secret_str):
     return {'SecretString': secret_str}
+
+
+@pytest.fixture
+def mock_secret_str_json_response(secret_str_json):
+    return {'SecretString': secret_str_json}
 
 
 @pytest.fixture
@@ -127,11 +157,6 @@ def test_extract_secret_from_boto3_response(secret_str, secret_base64):
         pytest.fail(UNEXPECTED_BYTES_DECODE_ERROR)
 
 
-def test_custom_boto3_client():
-    client = mock.Mock()
-    client.get_secret_value = mock.Mock()
-
-
 def test_get_secret_from_env_var(
         mock_secret_str_response,
         secret_env_var_dict,
@@ -153,6 +178,29 @@ def test_get_secret_from_env_var(
         client.get_secret_value.assert_not_called()
 
         assert secret == secret_str
+
+
+def test_get_secret_from_env_var_load_json(
+        mock_secret_str_json_response,
+        secret_env_var_dict,
+        secret_key_env_json,
+        secret_str_json,
+):
+    with mock.patch.dict(os.environ, secret_env_var_dict):
+        assert secret_key_env_json in os.environ.keys()
+        assert os.environ[secret_key_env_json] == \
+            secret_env_var_dict[secret_key_env_json]
+
+        client = mock.Mock()
+        client.get_secret_value = mock.Mock(
+            return_value=mock_secret_str_json_response,
+        )
+
+        secret = get_secret(secret_key_env_json, client=client, memoize=True)
+
+        client.get_secret_value.assert_not_called()
+
+        assert secret == json.loads(secret_str_json)
 
 
 @mock.patch('get_aws_secret.get_client')
@@ -219,6 +267,31 @@ def test_get_secret_client_mock(
     assert secret == secret_str
 
 
+@mock.patch('get_aws_secret.get_client')
+def test_get_secret_load_json_client_mock(
+        get_client,
+        mock_secret_str_json_response,
+        secret_str_json,
+        secret_key_json,
+        ):
+    client = mock.Mock()
+    client.get_secret_value = mock.Mock(
+        return_value=mock_secret_str_json_response,
+    )
+    get_client.return_value = client
+
+    secret = get_secret(secret_key_json, client=client)
+
+    get_client.assert_called_with(client)
+
+    client.get_secret_value.assert_called_with(
+        SecretId=secret_key_json,
+        VersionId=c.DEFAULT_SECRET_VERSION_ID,
+        VersionStage=c.DEFAULT_SECRET_VERSION_STAGE,
+    )
+    assert secret == json.loads(secret_str_json)
+
+
 @mock.patch('get_aws_secret.get_secret')
 def test_get_secret_fix_args(get_secret, secret_str):
     with mock.patch.dict(os.environ, {}):
@@ -241,3 +314,24 @@ def test_get_secret_fix_args(get_secret, secret_str):
 
         get_secret.assert_called_once_with(secret_key, **get_secret_kwargs)
         assert secret == secret_str
+
+
+def test_return_secret():
+    secret = return_secret('data', load_json=False)
+    assert secret == 'data'
+
+    try:
+        secret = return_secret('data', load_json=True)
+    except json.decoder.JSONDecodeError:
+        pytest.fail('Unexpected JSONDecodeError')
+    else:
+        assert secret == 'data'
+
+    secret = return_secret('{"hello": "world"}', load_json=True)
+    assert type(secret) is dict
+    assert 'hello' in secret.keys()
+    assert secret['hello'] == 'world'
+
+    secret = return_secret('{"hello": "world"}', load_json=False)
+    assert type(secret) == str
+    assert secret == '{"hello": "world"}'
