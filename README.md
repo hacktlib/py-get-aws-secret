@@ -42,6 +42,32 @@ The `get_secret` method also accepts a secret ARN:
 secret_val = get_secret('arn:aws:secretsmanager:us-east-1:123456789012:secret:MY_SECRET_DATA')
 ```
 
+## Auto-load JSON strings
+
+Secrets with JSON-like strings can be automatically loaded by setting `load_json` argument to `True`. The default behavior is `False` (i.e. always returns a string, without attempting to load any JSON).
+
+```python
+from get_aws_secret import get_secret
+
+# MY_SECRET_JSON_DATA = '{"data": "foobar"}' (str)
+
+secret_val = get_secret('MY_SECRET_JSON_DATA', load_json=True)
+
+# Returns a dict, instead of str: {'data': 'foobar'}
+```
+
+If `load_json=True` and the secret value isn't a JSON-compatible string, it returns the string without raising exceptions:
+
+```python
+from get_aws_secret import get_secret
+
+# MY_SECRET_PLAIN_DATA = 'just plain text' (str)
+
+secret_val = get_secret('MY_SECRET_PLAIN_DATA', load_json=True)
+
+# Returns a string: 'just plain text'
+```
+
 
 ## Memoization
 
@@ -57,7 +83,7 @@ In the first run, setting `memoize=True` is equivalent to running `os.environ['M
 
 In subsequent calls with `memoize=True`, the function will find `MY_SECRET_DATA` in `os.environ` and retrieve it locally . In other words, it won't hit the AWS endpoints (saves a few milliseconds and cents).
 
-It's possible to set the behavior of `memoize=True` (in fact, any other get_value argument) as the default for all requests without explicit argument:
+It's possible to set the behavior of `memoize=True` (in fact, any other `get_value` argument) as the default for all requests without explicit argument:
 
 ```python
 from get_aws_secret import get_secret_fix_args

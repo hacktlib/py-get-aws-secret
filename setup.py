@@ -22,7 +22,7 @@ pub_requirements = dev_requirements + ['twine>=3.2.0']
 
 setup(
     name='get-aws-secret',
-    version='0.2.0b0',
+    version='0.2.0b1',
     description='Simplify retrieval of secrets from AWS SecretsManager. ' +
                 'Optionally auto-memoize secrets in environment variables ' +
                 'to improve performance and reduce costs.',
