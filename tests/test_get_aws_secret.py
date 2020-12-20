@@ -11,6 +11,7 @@ import pytest
 from get_aws_secret import (
     constants as c,
     extract_secret_from_boto3_response as extract_secret,
+    generate_client_args,
     get_client,
     get_secret,
     get_secret_fix_args,
@@ -109,6 +110,66 @@ def test_get_client():
     client = get_client(custom_client)
 
     assert client == custom_client
+
+
+def test_generate_client_args(secret_key):
+    dummy_version_stage = 'dummy-version'
+    dummy_version_id = 'dummy-id'
+
+    # Test without version arguments
+    client_args = generate_client_args(secret_identifier=secret_key)
+
+    assert type(client_args) is dict
+    assert 'SecretId' in client_args
+    assert client_args['SecretId'] == secret_key
+    assert len(client_args.keys()) == 1
+
+    # Test with a Version ID
+    client_args = generate_client_args(
+        secret_identifier=secret_key,
+        version_id=dummy_version_id,
+    )
+
+    assert type(client_args) is dict
+    assert 'SecretId' in client_args
+    assert client_args['SecretId'] == secret_key
+    assert 'VersionId' in client_args
+    assert client_args['VersionId'] == dummy_version_id
+    assert len(client_args.keys()) == 2
+
+    # Test with a Version Stage
+    client_args = generate_client_args(
+        secret_identifier=secret_key,
+        version_stage=dummy_version_stage,
+    )
+
+    assert type(client_args) is dict
+    assert 'SecretId' in client_args
+    assert client_args['SecretId'] == secret_key
+    assert 'VersionStage' in client_args
+    assert client_args['VersionStage'] == dummy_version_stage
+    assert len(client_args.keys()) == 2
+
+    # Test with both version args
+    try:
+        client_args = generate_client_args(
+            secret_identifier=secret_key,
+            version_id=dummy_version_id,
+            version_stage=dummy_version_stage,
+        )
+    except Exception as e:
+        # Although the AWS docs suggests to not set an Id when a Stage is set,
+        # we should not raise exception for this rule, let it be done by boto3
+        pytest.fail(f'Unexpected {type(e).__name__} error')
+
+    assert type(client_args) is dict
+    assert 'SecretId' in client_args
+    assert client_args['SecretId'] == secret_key
+    assert 'VersionId' in client_args
+    assert client_args['VersionId'] == dummy_version_id
+    assert 'VersionStage' in client_args
+    assert client_args['VersionStage'] == dummy_version_stage
+    assert len(client_args.keys()) == 3
 
 
 def test_get_new_boto3_client():
@@ -259,11 +320,7 @@ def test_get_secret_client_mock(
 
     get_client.assert_called_with(client)
 
-    client.get_secret_value.assert_called_with(
-        SecretId=secret_key,
-        VersionId=c.DEFAULT_SECRET_VERSION_ID,
-        VersionStage=c.DEFAULT_SECRET_VERSION_STAGE,
-    )
+    client.get_secret_value.assert_called_with(SecretId=secret_key)
     assert secret == secret_str
 
 
@@ -284,11 +341,7 @@ def test_get_secret_load_json_client_mock(
 
     get_client.assert_called_with(client)
 
-    client.get_secret_value.assert_called_with(
-        SecretId=secret_key_json,
-        VersionId=c.DEFAULT_SECRET_VERSION_ID,
-        VersionStage=c.DEFAULT_SECRET_VERSION_STAGE,
-    )
+    client.get_secret_value.assert_called_with(SecretId=secret_key_json)
     assert secret == json.loads(secret_str_json)
 
 

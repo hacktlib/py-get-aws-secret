@@ -26,6 +26,22 @@ def get_client(default):
     return new_boto3_client()
 
 
+def generate_client_args(
+        secret_identifier: str,
+        version_id: Optional[str] = None,
+        version_stage: Optional[str] = None,
+        ) -> dict:
+    client_args = {'SecretId': secret_identifier}
+
+    if version_id is not None:
+        client_args['VersionId'] = version_id
+
+    if version_stage is not None:
+        client_args['VersionStage'] = version_stage
+
+    return client_args
+
+
 def extract_secret_from_boto3_response(
         response: dict,
         base64_decode: bool = True,
@@ -76,8 +92,8 @@ def get_secret(
 
         # Args for the client.get_secret_value method
         client: Optional[botocore.client.BaseClient] = None,
-        version_id: Optional[str] = c.DEFAULT_SECRET_VERSION_ID,
-        version_stage: Optional[str] = c.DEFAULT_SECRET_VERSION_STAGE,
+        version_id: Optional[str] = None,
+        version_stage: Optional[str] = None,
 
         # Secret decoding args (used in extract_secret_from_boto3_response)
         base64_decode: Optional[bool] = True,
@@ -91,11 +107,13 @@ def get_secret(
 
     client = get_client(client)
 
-    response = client.get_secret_value(
-        SecretId=secret_identifier,
-        VersionId=version_id,
-        VersionStage=version_stage,
+    client_args = generate_client_args(
+        secret_identifier=secret_identifier,
+        version_id=version_id,
+        version_stage=version_stage,
     )
+
+    response = client.get_secret_value(**client_args)
 
     secret_value = extract_secret_from_boto3_response(
         response=response,
